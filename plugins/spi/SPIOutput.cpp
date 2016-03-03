@@ -809,7 +809,10 @@ void SPIOutput::IndividualTLC5971Control(const DmxBuffer &buffer) {
     0
   };
   uint16_t spi_offset = 0;
-  memcpy(output[spi_offset], data_debug, 28);
+  memcpy(output + spi_offset, data_debug, 28);
+  // for (uint16_t i = 0; i < 28; i++) {
+  //   output[spi_offset + i] = data_debug[i]
+  // }
 
   // write output back
   m_backend->Commit(m_output_number);
