@@ -87,11 +87,16 @@ const uint16_t SPIOutput::WS2801_SLOTS_PER_PIXEL = 3;
 const uint16_t SPIOutput::LPD8806_SLOTS_PER_PIXEL = 3;
 const uint16_t SPIOutput::P9813_SLOTS_PER_PIXEL = 3;
 const uint16_t SPIOutput::APA102_SLOTS_PER_PIXEL = 3;
+// 12 channels @ 16bit = 24 dmx channels
+const uint16_t SPIOutput::TLC5971_SLOTS_PER_DEVICE = 24;
+
 
 // Number of bytes that each pixel uses on the SPI wires
 // (if it differs from 1:1 with colors)
 const uint16_t SPIOutput::P9813_SPI_BYTES_PER_PIXEL = 4;
 const uint16_t SPIOutput::APA102_SPI_BYTES_PER_PIXEL = 4;
+
+const uint16_t SPIOutput::TLC5971_SPI_BYTES_PER_DEVICE = 28
 
 const uint16_t SPIOutput::APA102_START_FRAME_BYTES = 4;
 
@@ -196,6 +201,8 @@ SPIOutput::SPIOutput(const UID &uid, SPIBackendInterface *backend,
                                       "APA102 Individual Control"));
   personalities.push_back(Personality(APA102_SLOTS_PER_PIXEL,
                                       "APA102 Combined Control"));
+  personalities.push_back(Personality(TLC5971_SLOTS_PER_DEVICE,
+                                      "TLC5971 Individual Control"));
   m_personality_collection.reset(new PersonalityCollection(personalities));
   m_personality_manager.reset(new PersonalityManager(
       m_personality_collection.get()));
@@ -315,6 +322,9 @@ bool SPIOutput::InternalWriteDMX(const DmxBuffer &buffer) {
       break;
     case 8:
       CombinedAPA102Control(buffer);
+      break;
+    case 9:
+      IndividualTLC5971Control(buffer);
       break;
     default:
       break;
@@ -651,6 +661,114 @@ uint8_t SPIOutput::CalculateAPA102LatchBytes(uint16_t pixel_count) {
   const uint8_t latch_bits = (pixel_count + 1) / 2;
   const uint8_t latch_bytes = (latch_bits + 7) / 8;
   return latch_bytes;
+}
+
+
+void SPIOutput::IndividualTLC5971Control(const DmxBuffer &buffer) {
+  // some detailed information on the protocol:
+  // http://www.ti.com/lit/ds/symlink/tlc5971.pdf
+  //  8.5.4 Register and Data Latch Configuration (page23)
+  //  9.2.2.3 How to Control the TLC5971 (page27)
+  // How to send:
+  // the first data we send are received by the last device in chain.
+  // Device Nth (244Bit = 28Byte)
+  //  Write Command (6Bit)
+  //    WRCMD (fixed: 25h)
+  //  Function Control Data (5 x 1Bit = 5Bit)
+  //    OUTTMG 1bit; GS clock edge select
+  //      1=rising edge, 0= falling edge
+  //    EXTGCK 1bit; GS reference clock select
+  //      1=SCKI clock, 0=internal oscillator
+  //    TMGRST 1bit; display timing reset mode
+  //      1=OUT forced of on latchpulse, 0=no forced reset
+  //    DSPRPT 1bit; display repeat mode
+  //      1=auto repeate
+  //      0=Out only turned on after Blank or internal latchpulse
+  //    BLANK 1bit;
+  //      1=blank (outputs off)
+  //      0=Out on - controlled by GS-Data
+  //      ic power on sets this to 1
+  //  BC-Data (3 x 7Bits = 21Bit)
+  //    BCB 7bit;
+  //    BCG 7bit;
+  //    BCR 7bit;
+  //  GS-Data (12 x 16Bits = 192Bit)
+  //    GSB3 16bit;
+  //    GSG3 16bit;
+  //    GSR3 16bit;
+  //    GSB2 16bit;
+  //    GSG2 16bit;
+  //    GSR2 16bit;
+  //    GSB1 16bit;
+  //    GSG1 16bit;
+  //    GSR1 16bit;
+  //    GSB0 16bit;
+  //    GSG0 16bit;
+  //    GSR0 16bit;
+  // Device Nth-1 (244Bit = 28Byte)
+  // Device ..
+  // Device 2
+  // Device 1
+  // short brake of 8x period of clock (666ns .. 2.74ms) to generate latchpulse
+  //   + 1.34uS
+  // than next update.
+
+  // calculate DMX-start-address
+  const unsigned int first_slot = m_start_address - 1;  // 0 offset
+
+  // only do something if at least 1 device can be updated..
+  if (buffer.Size() - first_slot < TLC5971_SLOTS_PER_DEVICE) {
+    OLA_INFO << "Insufficient DMX data, required " << TLC5971_SLOTS_PER_DEVICE
+             << ", got " << buffer.Size() - first_slot;
+    return;
+  }
+
+  // rename m_pxiel_count for easier understanding.
+  const unsigned int device_count   = m_pixel_count;
+
+  // We always check out the entire string length, even if we only have data
+  // for part of it
+  uint16_t output_length = (device_count * TLC5971_SPI_BYTES_PER_DEVICE);
+
+  uint8_t *output = m_backend->Checkout(
+      m_output_number,
+      output_length);
+
+  // only update SPI data if possible
+  if (!output) {
+    return;
+  }
+
+  for (uint16_t i = 0; i < device_count; i++) {
+    uint16_t dmx_offset = first_slot + (i * TLC5971_SLOTS_PER_DEVICE);
+
+    // only write pixel data if buffer has complete data for this device:
+    if ((buffer.Size() - dmx_offset) >= TLC5971_SLOTS_PER_DEVICE) {
+      TLC5971_packet_t device_data;
+
+      // this configuration is currently hard coded..
+      device_data.config.config_fields.WRCMD = 0x25;
+      device_data.config.config_fields.OUTTMG = 0;  // falling edge
+      device_data.config.config_fields.EXTGCK = 0;  // internal oscillator
+      device_data.config.config_fields.TMGRST = 0;  // no forced reset
+      device_data.config.config_fields.DSPRPT = 1;  // auto repeate
+      device_data.config.config_fields.BLANK = 0;   // output enabled
+      device_data.config.config_fields.BCB = 0x7F;  // full
+      device_data.config.config_fields.BCG = 0x7F;  // full
+      device_data.config.config_fields.BCR = 0x7F;  // full
+
+      // fill gs data
+      for (uint8_t i = 0; i < TLC5971_SLOTS_PER_DEVICE; i++) {
+        device_data.gsdata.gs_fields[i] = buffer.Get(dmx_offset + i);
+      }
+
+      // copy data to output buffer
+      memcpy(output, device_data, sizeof(device_data));
+    }
+  }
+
+  // write output back
+  m_backend->Commit(m_output_number);
 }
 
 
