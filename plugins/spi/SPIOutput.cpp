@@ -739,36 +739,77 @@ void SPIOutput::IndividualTLC5971Control(const DmxBuffer &buffer) {
     return;
   }
 
-  for (uint16_t i = 0; i < device_count; i++) {
-    uint16_t dmx_offset = first_slot + (i * TLC5971_SLOTS_PER_DEVICE);
+  // for (uint16_t i = 0; i < device_count; i++) {
+  //   uint16_t dmx_offset = first_slot + (i * TLC5971_SLOTS_PER_DEVICE);
+  //
+  //   // only write pixel data if buffer has complete data for this device:
+  //   if ((buffer.Size() - dmx_offset) >= TLC5971_SLOTS_PER_DEVICE) {
+  //     uint16_t spi_offset = (i * TLC5971_SPI_BYTES_PER_DEVICE);
+  //
+  //     TLC5971_packet_t device_data;
+  //
+  //     // this configuration is currently hard coded..
+  //     device_data.fields.config.config_fields.WRCMD = 0x25;
+  //     device_data.fields.config.config_fields.OUTTMG = 0;  // falling edge
+  //     device_data.fields.config.config_fields.EXTGCK = 0;  // internal
+  //     device_data.fields.config.config_fields.TMGRST = 0;  // no forced reset
+  //     device_data.fields.config.config_fields.DSPRPT = 1;  // auto repeate
+  //     device_data.fields.config.config_fields.BLANK = 0;   // output enabled
+  //     device_data.fields.config.config_fields.BCB = 0x7F;  // full
+  //     device_data.fields.config.config_fields.BCG = 0x7F;  // full
+  //     device_data.fields.config.config_fields.BCR = 0x7F;  // full
+  //
+  //     // fill gs data
+  //     // possible with
+  //     // device_data.gsdata.gs_fields.GSB3 = 65000
+  //     // or
+  //     for (uint8_t i = 0; i < TLC5971_SLOTS_PER_DEVICE; i++) {
+  //       device_data.fields.gsdata.gs_bytes[i] = buffer.Get(dmx_offset + i);
+  //     }
+  //
+  //     // copy data to output buffer
+  //     memcpy(output[spi_offset], device_data.bytes, sizeof(TLC5971_packet_t));
+  //   }
+  // }
 
-    // only write pixel data if buffer has complete data for this device:
-    if ((buffer.Size() - dmx_offset) >= TLC5971_SLOTS_PER_DEVICE) {
-      TLC5971_packet_t device_data;
-
-      // this configuration is currently hard coded..
-      device_data.fields.config.config_fields.WRCMD = 0x25;
-      device_data.fields.config.config_fields.OUTTMG = 0;  // falling edge
-      device_data.fields.config.config_fields.EXTGCK = 0;  // internal
-      device_data.fields.config.config_fields.TMGRST = 0;  // no forced reset
-      device_data.fields.config.config_fields.DSPRPT = 1;  // auto repeate
-      device_data.fields.config.config_fields.BLANK = 0;   // output enabled
-      device_data.fields.config.config_fields.BCB = 0x7F;  // full
-      device_data.fields.config.config_fields.BCG = 0x7F;  // full
-      device_data.fields.config.config_fields.BCR = 0x7F;  // full
-
-      // fill gs data
-      // possible with
-      // device_data.gsdata.gs_fields.GSB3 = 65000
-      // or
-      for (uint8_t i = 0; i < TLC5971_SLOTS_PER_DEVICE; i++) {
-        device_data.fields.gsdata.gs_bytes[i] = buffer.Get(dmx_offset + i);
-      }
-
-      // copy data to output buffer
-      memcpy(output, device_data.bytes, sizeof(TLC5971_packet_t));
-    }
-  }
+  uint8_t data_debug[28] = {
+    // header
+    0b10010100,
+    0b01011111,
+    0b11111111,
+    0b11111111,
+    // gsdata
+    // 0
+    0,
+    255,
+    0,
+    0,
+    255,
+    0,
+    // 1
+    0,
+    255,
+    0,
+    0,
+    255,
+    0,
+    // 2
+    0,
+    255,
+    0,
+    0,
+    255,
+    0,
+    // 3
+    0,
+    255,
+    0,
+    0,
+    255,
+    0
+  };
+  uint16_t spi_offset = 0;
+  memcpy(output[spi_offset], data_debug, 28);
 
   // write output back
   m_backend->Commit(m_output_number);
