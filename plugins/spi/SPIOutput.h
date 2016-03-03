@@ -208,7 +208,7 @@ class SPIOutput: public ola::rdm::DiscoverableRDMControllerInterface {
       uint8_t BCG : 7;
       uint8_t BCR : 7;
     } config_fields;
-  }
+  };
 
   union TLC5971_packet_gsdata_t {
     uint8_t gs_bytes[24];
@@ -227,12 +227,15 @@ class SPIOutput: public ola::rdm::DiscoverableRDMControllerInterface {
       uint16_t GSG0;
       uint16_t GSR0;
     } gs_fields;
-  }
+  };
 
-  struct TLC5971_packet_t {
-    TLC5971_packet_config_t config;
-    TLC5971_packet_gsdata_t gsdata;
-  }
+  union TLC5971_packet_t {
+    uint8_t bytes[28];
+    struct {
+      TLC5971_packet_config_t config;
+      TLC5971_packet_gsdata_t gsdata;
+    } fields;
+  };
 
   static const ola::rdm::ResponderOps<SPIOutput>::ParamHandler
       PARAM_HANDLERS[];

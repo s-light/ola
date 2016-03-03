@@ -96,7 +96,7 @@ const uint16_t SPIOutput::TLC5971_SLOTS_PER_DEVICE = 24;
 const uint16_t SPIOutput::P9813_SPI_BYTES_PER_PIXEL = 4;
 const uint16_t SPIOutput::APA102_SPI_BYTES_PER_PIXEL = 4;
 
-const uint16_t SPIOutput::TLC5971_SPI_BYTES_PER_DEVICE = 28
+const uint16_t SPIOutput::TLC5971_SPI_BYTES_PER_DEVICE = 28;
 
 const uint16_t SPIOutput::APA102_START_FRAME_BYTES = 4;
 
@@ -747,23 +747,26 @@ void SPIOutput::IndividualTLC5971Control(const DmxBuffer &buffer) {
       TLC5971_packet_t device_data;
 
       // this configuration is currently hard coded..
-      device_data.config.config_fields.WRCMD = 0x25;
-      device_data.config.config_fields.OUTTMG = 0;  // falling edge
-      device_data.config.config_fields.EXTGCK = 0;  // internal oscillator
-      device_data.config.config_fields.TMGRST = 0;  // no forced reset
-      device_data.config.config_fields.DSPRPT = 1;  // auto repeate
-      device_data.config.config_fields.BLANK = 0;   // output enabled
-      device_data.config.config_fields.BCB = 0x7F;  // full
-      device_data.config.config_fields.BCG = 0x7F;  // full
-      device_data.config.config_fields.BCR = 0x7F;  // full
+      device_data.fields.config.config_fields.WRCMD = 0x25;
+      device_data.fields.config.config_fields.OUTTMG = 0;  // falling edge
+      device_data.fields.config.config_fields.EXTGCK = 0;  // internal
+      device_data.fields.config.config_fields.TMGRST = 0;  // no forced reset
+      device_data.fields.config.config_fields.DSPRPT = 1;  // auto repeate
+      device_data.fields.config.config_fields.BLANK = 0;   // output enabled
+      device_data.fields.config.config_fields.BCB = 0x7F;  // full
+      device_data.fields.config.config_fields.BCG = 0x7F;  // full
+      device_data.fields.config.config_fields.BCR = 0x7F;  // full
 
       // fill gs data
+      // possible with
+      // device_data.gsdata.gs_fields.GSB3 = 65000
+      // or
       for (uint8_t i = 0; i < TLC5971_SLOTS_PER_DEVICE; i++) {
-        device_data.gsdata.gs_fields[i] = buffer.Get(dmx_offset + i);
+        device_data.fields.gsdata.gs_bytes[i] = buffer.Get(dmx_offset + i);
       }
 
       // copy data to output buffer
-      memcpy(output, device_data, sizeof(device_data));
+      memcpy(output, device_data.bytes, sizeof(TLC5971_packet_t));
     }
   }
 
