@@ -31,6 +31,7 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include <bitset>  // for printing ints as binary representation
 #include "ola/base/Array.h"
 #include "ola/Constants.h"
 #include "ola/Logging.h"
@@ -772,6 +773,7 @@ void SPIOutput::IndividualTLC5971Control(const DmxBuffer &buffer) {
   //   }
   // }
 
+  // this works :-)
   uint8_t data_debug[28] = {
     // header
     0b10010100,
@@ -810,9 +812,12 @@ void SPIOutput::IndividualTLC5971Control(const DmxBuffer &buffer) {
   };
   uint16_t spi_offset = 0;
   memcpy(output + spi_offset, data_debug, 28);
-  // for (uint16_t i = 0; i < 28; i++) {
-  //   output[spi_offset + i] = data_debug[i]
-  // }
+  // print out for debugging
+  OLA_WARN << "data:";
+  for (uint16_t i = 0; i < (4 + 6); i++) {
+    OLA_WARN << "[" << static_cast<int>(i) << "] "
+             << std::bitset<8>(data_debug[i]);
+  }
 
   // write output back
   m_backend->Commit(m_output_number);

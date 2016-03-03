@@ -763,34 +763,56 @@ void SPIOutputTest::testIndividualTLC5971Control() {
   unsigned int length = 0;
   const uint8_t *data = NULL;
 
-  // // test1
-  // // setup some 'DMX' data
-  // buffer.SetFromString("1, 10, 100");
-  // // simulate incoming data
-  // output.WriteDMX(buffer);
-  // // get fake SPI data stream
-  // data = backend.GetData(0, &length);
-  // // this is the expected spi data stream:
-  // const uint8_t EXPECTED1[] = { 0, 0, 0, 0,               // StartFrame
-  //                               0xFF, 0x64, 0x0A, 0x01,   // first Pixel
-  //                               0xFF, 0x00, 0x00, 0x00,   // second Pixel
-  //                               0};                       // EndFrame
-  // // check for Equality
-  // OLA_ASSERT_DATA_EQUALS(EXPECTED1, arraysize(EXPECTED1), data, length);
-  // // check if the output writes are 1
-  // OLA_ASSERT_EQ(1u, backend.Writes(0));
-  //
-  // // test2
-  // buffer.SetFromString("255,128,0,10,20,30");
-  // output.WriteDMX(buffer);
-  // data = backend.GetData(0, &length);
-  // const uint8_t EXPECTED2[] = { 0, 0, 0, 0,
-  //                               0xFF, 0x00, 0x80, 0xFF,
-  //                               0xFF, 0x1E, 0x14, 0x0A,
-  //                               0};
-  // OLA_ASSERT_DATA_EQUALS(EXPECTED2, arraysize(EXPECTED2), data, length);
-  // OLA_ASSERT_EQ(2u, backend.Writes(0));
-  //
+  // test1
+  // basic channel to output mapping (one devices)
+  // setup some 'DMX' data
+  buffer.SetFromString("0, 1, 0, 10, 0, 100," +
+                        "1, 1, 1, 10, 1, 100," +
+                        "2, 1, 2, 10, 2, 100," +
+                        "3, 1, 3, 10, 3, 100");
+  // simulate incoming data
+  output.WriteDMX(buffer);
+  // get fake SPI data stream
+  data = backend.GetData(0, &length);
+  // this is the expected spi data stream:
+  const uint8_t EXPECTED1[] = { 0x94, 0x5F, 0xFF, 0xFF,               // header
+                                0x00, 0x01, 0x00, 0x0A, 0x00, 0x64,   // OUT0
+                                0x01, 0x01, 0x01, 0x0A, 0x01, 0x64,   // OUT1
+                                0x02, 0x01, 0x02, 0x0A, 0x02, 0x64,   // OUT2
+                                0x03, 0x01, 0x03, 0x0A, 0x03, 0x64,   // OUT3
+                                };
+  // check for Equality
+  OLA_ASSERT_DATA_EQUALS(EXPECTED1, arraysize(EXPECTED1), data, length);
+  // check if the output writes are 1
+  OLA_ASSERT_EQ(1u, backend.Writes(0));
+
+  // test2
+  // basic channel to output mapping (two devices)
+  buffer.SetFromString("0, 1, 0, 10, 0, 100," +
+                        "1, 1, 1, 10, 1, 100," +
+                        "2, 1, 2, 10, 2, 100," +
+                        "3, 1, 3, 10, 3, 100," +
+                        "160, 1, 160, 10, 160, 100," +
+                        "161, 1, 161, 10, 161, 100," +
+                        "162, 1, 162, 10, 162, 100," +
+                        "163, 1, 163, 10, 163, 100");
+  output.WriteDMX(buffer);
+  data = backend.GetData(0, &length);
+  const uint8_t EXPECTED2[] = { 0x94, 0x5F, 0xFF, 0xFF,               // header
+                                0x00, 0x01, 0x00, 0x0A, 0x00, 0x64,   // OUT0
+                                0x01, 0x01, 0x01, 0x0A, 0x01, 0x64,   // OUT1
+                                0x02, 0x01, 0x02, 0x0A, 0x02, 0x64,   // OUT2
+                                0x03, 0x01, 0x03, 0x0A, 0x03, 0x64,   // OUT3
+                                // device2
+                                0x94, 0x5F, 0xFF, 0xFF,               // header
+                                0xA0, 0x01, 0xA0, 0x0A, 0xA0, 0x64,   // OUT0
+                                0xA1, 0x01, 0xA1, 0x0A, 0xA1, 0x64,   // OUT1
+                                0xA2, 0x01, 0xA2, 0x0A, 0xA2, 0x64,   // OUT2
+                                0xA3, 0x01, 0xA3, 0x0A, 0xA3, 0x64,   // OUT3
+                                };
+  OLA_ASSERT_DATA_EQUALS(EXPECTED2, arraysize(EXPECTED2), data, length);
+  OLA_ASSERT_EQ(2u, backend.Writes(0));
+
   // // test3
   // // test what happens when only new data for the first leds is available.
   // // later data should be not modified so for pixel2 data set in test2 is valid
