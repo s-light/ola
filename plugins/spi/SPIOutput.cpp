@@ -786,40 +786,46 @@ void SPIOutput::IndividualTLC5971Control(const DmxBuffer &buffer) {
       // this configuration values are currently hard coded..
       // following values are equal for all devices.
       device_data.fields.config.field = 0;
-      device_data.fields.config.field &=
-        0x25 << TLC5971_PACKET_CONFIG_LSHIFT::WRCMD;
-      // device_data.fields.config.field &=
-      //   (0 & TLC5971_PACKET_CONFIG_MASKS::OUTTMG)  // falling edge
-      //   << TLC5971_PACKET_CONFIG_LSHIFT::OUTTMG;
-      // device_data.fields.config.field &=
-      //   (0 & TLC5971_PACKET_CONFIG_MASKS::EXTGCK)  // internal
-      //   << TLC5971_PACKET_CONFIG_LSHIFT::EXTGCK;
-      // device_data.fields.config.field &=
-      //   (0 & TLC5971_PACKET_CONFIG_MASKS::TMGRST)  // no forced reset
-      //   << TLC5971_PACKET_CONFIG_LSHIFT::TMGRST;
-      // device_data.fields.config.field &=
-      //   (1 & TLC5971_PACKET_CONFIG_MASKS::DSPRPT)  // auto repeate
-      //   << TLC5971_PACKET_CONFIG_LSHIFT::DSPRPT;
-      // device_data.fields.config.field &=
-      //   (0 & TLC5971_PACKET_CONFIG_MASKS::BLANK)  // output enabled
-      //   << TLC5971_PACKET_CONFIG_LSHIFT::BLANK;
-      // // BC data could be device dependent to calibrate led colors
-      // device_data.fields.config.field &=
-      //   (0x7F & TLC5971_PACKET_CONFIG_MASKS::BCB)  // full
-      //   << TLC5971_PACKET_CONFIG_LSHIFT::BCB;
-      // device_data.fields.config.field &=
-      //   (0x7F & TLC5971_PACKET_CONFIG_MASKS::BCG)  // full
-      //   << TLC5971_PACKET_CONFIG_LSHIFT::BCG;
-      // device_data.fields.config.field &=
-      //   (0x7F & TLC5971_PACKET_CONFIG_MASKS::BCR)  // full
-      //   << TLC5971_PACKET_CONFIG_LSHIFT::BCR;
+      device_data.fields.config.field |=
+        static_cast<uint32_t>(0x25) << TLC5971_PACKET_CONFIG_LSHIFT_WRCMD;
+      device_data.fields.config.field |=
+        (0 & TLC5971_PACKET_CONFIG_MASKS_OUTTMG)  // falling edge
+        << TLC5971_PACKET_CONFIG_LSHIFT_OUTTMG;
+      device_data.fields.config.field |=
+        (0 & TLC5971_PACKET_CONFIG_MASKS_EXTGCK)  // internal
+        << TLC5971_PACKET_CONFIG_LSHIFT_EXTGCK;
+      device_data.fields.config.field |=
+        (0 & TLC5971_PACKET_CONFIG_MASKS_TMGRST)  // no forced reset
+        << TLC5971_PACKET_CONFIG_LSHIFT_TMGRST;
+      device_data.fields.config.field |=
+        (1 & TLC5971_PACKET_CONFIG_MASKS_DSPRPT)  // auto repeate
+        << TLC5971_PACKET_CONFIG_LSHIFT_DSPRPT;
+      device_data.fields.config.field |=
+        (0 & TLC5971_PACKET_CONFIG_MASKS_BLANK)  // output enabled
+        << TLC5971_PACKET_CONFIG_LSHIFT_BLANK;
+      // BC data could be device dependent to calibrate led colors
+      device_data.fields.config.field |=
+        (0x7F & TLC5971_PACKET_CONFIG_MASKS_BCB)  // full
+        << TLC5971_PACKET_CONFIG_LSHIFT_BCB;
+      device_data.fields.config.field |=
+        (0x7F & TLC5971_PACKET_CONFIG_MASKS_BCG)  // full
+        << TLC5971_PACKET_CONFIG_LSHIFT_BCG;
+      device_data.fields.config.field |=
+        (0x7F & TLC5971_PACKET_CONFIG_MASKS_BCR)  // full
+        << TLC5971_PACKET_CONFIG_LSHIFT_BCR;
 
-      OLA_WARN << "TLC5971_packet_config_t size:"
-               << sizeof(TLC5971_packet_config_t);
-               // should return 4.
+      OLA_WARN << "FC + BC data:"
+               << std::bitset<32>(device_data.fields.config.field);
 
-      OLA_WARN << "TLC5971_PACKET_CONFIG_LSHIFT::WRCMD:"
-               << TLC5971_PACKET_CONFIG_LSHIFT::WRCMD;
+
+      // uint32_t test = 0;
+      // test = static_cast<uint32_t>(0x25) << TLC5971_PACKET_CONFIG_LSHIFT_WRCMD;
+      // OLA_WARN << "test:"
+      //          << std::bitset<32>(test);
+      // test |=
+      //   (1 << TLC5971_PACKET_CONFIG_LSHIFT_OUTTMG);
+      // OLA_WARN << "test:"
+      //          << std::bitset<32>(test);
 
       // // fixed values for the above:
       // device_data.fields.config.bytes[0] = 0b10010100;  // 0x94
