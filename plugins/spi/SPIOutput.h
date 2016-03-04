@@ -236,16 +236,21 @@ class SPIOutput: public ola::rdm::DiscoverableRDMControllerInterface {
   static const uint8_t TLC5971_PACKET_CONFIG_MASKS_BCR = 0b01111111;
 
   //  Write Command (6Bit)
-  static const uint8_t TLC5971_PACKET_CONFIG_LSHIFT_WRCMD  = 0 + 7 + 7 + 7 + 1 + 1 + 1 + 1 + 1;
+  static const uint8_t TLC5971_PACKET_CONFIG_LSHIFT_WRCMD  = 2;
   //  Function Control Data (5 x 1Bit = 5Bit)
-  static const uint8_t TLC5971_PACKET_CONFIG_LSHIFT_OUTTMG = 0 + 7 + 7 + 7 + 1 + 1 + 1 + 1;
-  static const uint8_t TLC5971_PACKET_CONFIG_LSHIFT_EXTGCK = 0 + 7 + 7 + 7 + 1 + 1 + 1;
-  static const uint8_t TLC5971_PACKET_CONFIG_LSHIFT_TMGRST = 0 + 7 + 7 + 7 + 1 + 1;
-  static const uint8_t TLC5971_PACKET_CONFIG_LSHIFT_DSPRPT = 0 + 7 + 7 + 7 + 1;
-  static const uint8_t TLC5971_PACKET_CONFIG_LSHIFT_BLANK  = 0 + 7 + 7 + 7;
+  static const uint8_t TLC5971_PACKET_CONFIG_LSHIFT_OUTTMG = 1;
+  static const uint8_t TLC5971_PACKET_CONFIG_LSHIFT_EXTGCK = 0;
+  // byte border ------------------------------------------
+  static const uint8_t TLC5971_PACKET_CONFIG_LSHIFT_TMGRST = 7;
+  static const uint8_t TLC5971_PACKET_CONFIG_LSHIFT_DSPRPT = 6;
+  static const uint8_t TLC5971_PACKET_CONFIG_LSHIFT_BLANK  = 5;
   //  BC-Data (3 x 7Bits = 21Bit)
-  static const uint8_t TLC5971_PACKET_CONFIG_LSHIFT_BCB = 0 + 7 + 7;
-  static const uint8_t TLC5971_PACKET_CONFIG_LSHIFT_BCG = 0 + 7;
+  static const uint8_t TLC5971_PACKET_CONFIG_LSHIFT_BCB_RS = 2;
+  // byte border ------------------------------------------
+  static const uint8_t TLC5971_PACKET_CONFIG_LSHIFT_BCB_LS = 6;
+  static const uint8_t TLC5971_PACKET_CONFIG_LSHIFT_BCG_RS = 1;
+  // byte border ------------------------------------------
+  static const uint8_t TLC5971_PACKET_CONFIG_LSHIFT_BCG_LS = 7;
   static const uint8_t TLC5971_PACKET_CONFIG_LSHIFT_BCR = 0;
 
 

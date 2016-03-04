@@ -785,62 +785,65 @@ void SPIOutput::IndividualTLC5971Control(const DmxBuffer &buffer) {
       TLC5971_packet_t device_data;
       // this configuration values are currently hard coded..
       // following values are equal for all devices.
-      device_data.fields.config.field = 0;
-      device_data.fields.config.field |=
+      // reset
+      device_data.fields.config[0] = 0;
+      device_data.fields.config[0] = 0;
+      device_data.fields.config[0] = 0;
+      device_data.fields.config[0] = 0;
+      // fill byte 0
+      device_data.fields.config[0] |=
         static_cast<uint32_t>(0x25) << TLC5971_PACKET_CONFIG_LSHIFT_WRCMD;
-      device_data.fields.config.field |=
+      device_data.fields.config[0] |=
         (0 & TLC5971_PACKET_CONFIG_MASKS_OUTTMG)  // falling edge
         << TLC5971_PACKET_CONFIG_LSHIFT_OUTTMG;
-      device_data.fields.config.field |=
+      device_data.fields.config[0] |=
         (0 & TLC5971_PACKET_CONFIG_MASKS_EXTGCK)  // internal
         << TLC5971_PACKET_CONFIG_LSHIFT_EXTGCK;
-      device_data.fields.config.field |=
+      // byte border ------------------------------------------
+      // fill byte 1
+      device_data.fields.config[1] |=
         (0 & TLC5971_PACKET_CONFIG_MASKS_TMGRST)  // no forced reset
         << TLC5971_PACKET_CONFIG_LSHIFT_TMGRST;
-      device_data.fields.config.field |=
+      device_data.fields.config[1] |=
         (1 & TLC5971_PACKET_CONFIG_MASKS_DSPRPT)  // auto repeate
         << TLC5971_PACKET_CONFIG_LSHIFT_DSPRPT;
-      device_data.fields.config.field |=
+      device_data.fields.config[1] |=
         (0 & TLC5971_PACKET_CONFIG_MASKS_BLANK)  // output enabled
         << TLC5971_PACKET_CONFIG_LSHIFT_BLANK;
       // BC data could be device dependent to calibrate led colors
-      device_data.fields.config.field |=
-        (0x7F & TLC5971_PACKET_CONFIG_MASKS_BCB)  // full
-        << TLC5971_PACKET_CONFIG_LSHIFT_BCB;
-      device_data.fields.config.field |=
-        (0x7F & TLC5971_PACKET_CONFIG_MASKS_BCG)  // full
-        << TLC5971_PACKET_CONFIG_LSHIFT_BCG;
-      device_data.fields.config.field |=
-        (0x7F & TLC5971_PACKET_CONFIG_MASKS_BCR)  // full
+      uint8_t temp_BCB = 0x7F;  // full
+      uint8_t temp_BCG = 0x00;  // full
+      uint8_t temp_BCR = 0x7F;  // full
+      device_data.fields.config[1] |=
+        (temp_BCB & TLC5971_PACKET_CONFIG_MASKS_BCB)
+        >> TLC5971_PACKET_CONFIG_LSHIFT_BCB_RS;
+      // byte border ------------------------------------------
+      device_data.fields.config[2] |=
+        (temp_BCB & TLC5971_PACKET_CONFIG_MASKS_BCB)
+        << TLC5971_PACKET_CONFIG_LSHIFT_BCB_LS;
+      device_data.fields.config[2] |=
+        (temp_BCG & TLC5971_PACKET_CONFIG_MASKS_BCG)
+        >> TLC5971_PACKET_CONFIG_LSHIFT_BCG_RS;
+      // byte border ------------------------------------------
+      device_data.fields.config[3] |=
+        (temp_BCG & TLC5971_PACKET_CONFIG_MASKS_BCG)
+        << TLC5971_PACKET_CONFIG_LSHIFT_BCG_LS;
+      device_data.fields.config[3] |=
+        (temp_BCR & TLC5971_PACKET_CONFIG_MASKS_BCR)
         << TLC5971_PACKET_CONFIG_LSHIFT_BCR;
-
-      OLA_WARN << "FC + BC data:"
-               << std::bitset<32>(device_data.fields.config.field);
-
-
-      // uint32_t test = 0;
-      // test = static_cast<uint32_t>(0x25) << TLC5971_PACKET_CONFIG_LSHIFT_WRCMD;
-      // OLA_WARN << "test:"
-      //          << std::bitset<32>(test);
-      // test |=
-      //   (1 << TLC5971_PACKET_CONFIG_LSHIFT_OUTTMG);
-      // OLA_WARN << "test:"
-      //          << std::bitset<32>(test);
 
       // // fixed values for the above:
       // device_data.fields.config.bytes[0] = 0b10010100;  // 0x94
       // device_data.fields.config.bytes[1] = 0b01011111,  // 0x5F
       // device_data.fields.config.bytes[2] = 0b11111111,  // 0xFF
       // device_data.fields.config.bytes[3] = 0b11111111,  // 0xFF
-      // // even shorter:
-      // device_data.fields.config.field = 0b10010100010111111111111111111111;
 
 
       OLA_WARN << "TLC5971:";
       OLA_WARN << "FC + BC data:";
       for (uint16_t i = 0; i < 4; i++) {
         OLA_WARN << "[" << static_cast<int>(i) << "] "
-                 << std::bitset<8>(device_data.fields.config.bytes[i]);
+                 << std::bitset<8>(device_data.fields.config[i]);
       }
 
       // fill gs data
