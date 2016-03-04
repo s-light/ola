@@ -773,13 +773,16 @@ void SPIOutput::IndividualTLC5971Control(const DmxBuffer &buffer) {
 
   OLA_WARN << "******************************************";
 
+  // calculate how much channels for full devices are available in dmx_buffer
+  uint16_t devices_in_buffer = buffer.Size() / TLC5971_SLOTS_PER_DEVICE;
 
-  for (uint16_t i = 0; i < device_count; i++) {
+  for (uint16_t i = 0; i < devices_in_buffer; i++) {
     uint16_t dmx_offset = first_slot + (i * TLC5971_SLOTS_PER_DEVICE);
 
     // only write pixel data if buffer has complete data for this device:
-    if ((buffer.Size() - dmx_offset) >= TLC5971_SLOTS_PER_DEVICE) {
+    // if ((buffer.Size() - dmx_offset) >= TLC5971_SLOTS_PER_DEVICE) {
       uint16_t spi_offset = (i * TLC5971_SPI_BYTES_PER_DEVICE);
+      // OLA_WARN << "i" << static_cast<int>(i) << "found enough dmx values.";
 
       // setup configuration for this device.
       TLC5971_packet_t device_data;
@@ -812,7 +815,7 @@ void SPIOutput::IndividualTLC5971Control(const DmxBuffer &buffer) {
         << TLC5971_PACKET_CONFIG_LSHIFT_BLANK;
       // BC data could be device dependent to calibrate led colors
       uint8_t temp_BCB = 0x7F;  // full
-      uint8_t temp_BCG = 0x00;  // full
+      uint8_t temp_BCG = 0x7F;  // full
       uint8_t temp_BCR = 0x7F;  // full
       device_data.fields.config[1] |=
         (temp_BCB & TLC5971_PACKET_CONFIG_MASKS_BCB)
@@ -854,15 +857,15 @@ void SPIOutput::IndividualTLC5971Control(const DmxBuffer &buffer) {
         device_data.fields.gsdata.bytes[i] = buffer.Get(dmx_offset + i);
       }
 
-      OLA_WARN << "GS data:";
-      for (uint16_t i = 0; i < 24; i++) {
-        OLA_WARN << "[" << static_cast<int>(i) << "] "
-                 << std::bitset<8>(device_data.fields.gsdata.bytes[i]);
-      }
+      // OLA_WARN << "GS data:";
+      // for (uint16_t i = 0; i < 24; i++) {
+      //   OLA_WARN << "[" << static_cast<int>(i) << "] "
+      //            << std::bitset<8>(device_data.fields.gsdata.bytes[i]);
+      // }
 
       // copy data to output buffer
       memcpy(output + spi_offset, device_data.bytes, sizeof(TLC5971_packet_t));
-    }
+    // }  // if enough data for full device end
   }
 
   // this works :-)

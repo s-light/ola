@@ -253,13 +253,6 @@ class SPIOutput: public ola::rdm::DiscoverableRDMControllerInterface {
   static const uint8_t TLC5971_PACKET_CONFIG_LSHIFT_BCG_LS = 7;
   static const uint8_t TLC5971_PACKET_CONFIG_LSHIFT_BCR = 0;
 
-
-  // union TLC5971_packet_config_t {
-  //   uint8_t bytes[4];
-  //   uint32_t field;
-  // };
-  // ---> the uint32_t gives endianes issues..
-
   union TLC5971_packet_gsdata_t {
     uint8_t bytes[24];
     // 12ch @16bit = 24byte
