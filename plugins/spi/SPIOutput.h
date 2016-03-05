@@ -191,70 +191,63 @@ class SPIOutput: public ola::rdm::DiscoverableRDMControllerInterface {
   static const uint16_t TLC5971_SPI_BYTES_PER_DEVICE;
 
   // TLC5971 data structure
-  // static struct TLC5971_PACKET_CONFIG_MASKS {
-  //   //  Write Command (6Bit)
-  //   const uint8_t WRCMD;
-  //   //  Function Control Data (5 x 1Bit = 5Bit)
-  //   const uint8_t OUTTMG;
-  //   const uint8_t EXTGCK;
-  //   const uint8_t TMGRST;
-  //   const uint8_t DSPRPT;
-  //   const uint8_t BLANK;
-  //   //  BC-Data (3 x 7Bits = 21Bit)
-  //   const uint8_t BCB;
-  //   const uint8_t BCG;
-  //   const uint8_t BCR;
-  // };
+
+  PACK(
+  struct TLC5971_packet_config_fields_t{
+    //  Write Command (6Bit)
+    uint8_t WRCMD : 6;
+    //  Function Control Data (5 x 1Bit = 5Bit)
+    uint8_t OUTTMG : 1;
+    uint8_t EXTGCK : 1;
+    uint8_t TMGRST : 1;
+    uint8_t DSPRPT : 1;
+    uint8_t BLANK : 1;
+    //  BC-Data (3 x 7Bits = 21Bit)
+    uint8_t BCB : 7;
+    uint8_t BCG : 7;
+    uint8_t BCR : 7;
+  });
+
+  union TLC5971_packet_config_t {
+    uint8_t bytes[4];
+    // 6 + 5 + 21 = 4byte
+     TLC5971_packet_config_fields_t fields;
+  };
+
+  // //  Write Command (6Bit)
+  // static const uint8_t TLC5971_PACKET_CONFIG_MASKS_WRCMD = 0b00111111;
+  // //  Function Control Data (5 x 1Bit = 5Bit)
+  // static const uint8_t TLC5971_PACKET_CONFIG_MASKS_OUTTMG = 0b00000001;
+  // static const uint8_t TLC5971_PACKET_CONFIG_MASKS_EXTGCK = 0b00000001;
+  // static const uint8_t TLC5971_PACKET_CONFIG_MASKS_TMGRST = 0b00000001;
+  // static const uint8_t TLC5971_PACKET_CONFIG_MASKS_DSPRPT = 0b00000001;
+  // static const uint8_t TLC5971_PACKET_CONFIG_MASKS_BLANK  = 0b00000001;
+  // //  BC-Data (3 x 7Bits = 21Bit)
+  // static const uint8_t TLC5971_PACKET_CONFIG_MASKS_BCB = 0b01111111;
+  // static const uint8_t TLC5971_PACKET_CONFIG_MASKS_BCG = 0b01111111;
+  // static const uint8_t TLC5971_PACKET_CONFIG_MASKS_BCR = 0b01111111;
   //
-  // static struct TLC5971_PACKET_CONFIG_LSHIFT {
-  //   //  Write Command (6Bit)
-  //   const uint8_t WRCMD;
-  //   //  Function Control Data (5 x 1Bit = 5Bit)
-  //   const uint8_t OUTTMG;
-  //   const uint8_t EXTGCK;
-  //   const uint8_t TMGRST;
-  //   const uint8_t DSPRPT;
-  //   const uint8_t BLANK;
-  //   //  BC-Data (3 x 7Bits = 21Bit)
-  //   const uint8_t BCB;
-  //   const uint8_t BCG;
-  //   const uint8_t BCR;
-  // };
-
-
-  //  Write Command (6Bit)
-  static const uint8_t TLC5971_PACKET_CONFIG_MASKS_WRCMD = 0b00111111;
-  //  Function Control Data (5 x 1Bit = 5Bit)
-  static const uint8_t TLC5971_PACKET_CONFIG_MASKS_OUTTMG = 0b00000001;
-  static const uint8_t TLC5971_PACKET_CONFIG_MASKS_EXTGCK = 0b00000001;
-  static const uint8_t TLC5971_PACKET_CONFIG_MASKS_TMGRST = 0b00000001;
-  static const uint8_t TLC5971_PACKET_CONFIG_MASKS_DSPRPT = 0b00000001;
-  static const uint8_t TLC5971_PACKET_CONFIG_MASKS_BLANK  = 0b00000001;
-  //  BC-Data (3 x 7Bits = 21Bit)
-  static const uint8_t TLC5971_PACKET_CONFIG_MASKS_BCB = 0b01111111;
-  static const uint8_t TLC5971_PACKET_CONFIG_MASKS_BCG = 0b01111111;
-  static const uint8_t TLC5971_PACKET_CONFIG_MASKS_BCR = 0b01111111;
-
-  //  Write Command (6Bit)
-  static const uint8_t TLC5971_PACKET_CONFIG_LSHIFT_WRCMD  = 2;
-  //  Function Control Data (5 x 1Bit = 5Bit)
-  static const uint8_t TLC5971_PACKET_CONFIG_LSHIFT_OUTTMG = 1;
-  static const uint8_t TLC5971_PACKET_CONFIG_LSHIFT_EXTGCK = 0;
-  // byte border ------------------------------------------
-  static const uint8_t TLC5971_PACKET_CONFIG_LSHIFT_TMGRST = 7;
-  static const uint8_t TLC5971_PACKET_CONFIG_LSHIFT_DSPRPT = 6;
-  static const uint8_t TLC5971_PACKET_CONFIG_LSHIFT_BLANK  = 5;
-  //  BC-Data (3 x 7Bits = 21Bit)
-  static const uint8_t TLC5971_PACKET_CONFIG_LSHIFT_BCB_RS = 2;
-  // byte border ------------------------------------------
-  static const uint8_t TLC5971_PACKET_CONFIG_LSHIFT_BCB_LS = 6;
-  static const uint8_t TLC5971_PACKET_CONFIG_LSHIFT_BCG_RS = 1;
-  // byte border ------------------------------------------
-  static const uint8_t TLC5971_PACKET_CONFIG_LSHIFT_BCG_LS = 7;
-  static const uint8_t TLC5971_PACKET_CONFIG_LSHIFT_BCR = 0;
+  // //  Write Command (6Bit)
+  // static const uint8_t TLC5971_PACKET_CONFIG_LSHIFT_WRCMD  = 2;
+  // //  Function Control Data (5 x 1Bit = 5Bit)
+  // static const uint8_t TLC5971_PACKET_CONFIG_LSHIFT_OUTTMG = 1;
+  // static const uint8_t TLC5971_PACKET_CONFIG_LSHIFT_EXTGCK = 0;
+  // // byte border ------------------------------------------
+  // static const uint8_t TLC5971_PACKET_CONFIG_LSHIFT_TMGRST = 7;
+  // static const uint8_t TLC5971_PACKET_CONFIG_LSHIFT_DSPRPT = 6;
+  // static const uint8_t TLC5971_PACKET_CONFIG_LSHIFT_BLANK  = 5;
+  // //  BC-Data (3 x 7Bits = 21Bit)
+  // static const uint8_t TLC5971_PACKET_CONFIG_LSHIFT_BCB_RS = 2;
+  // // byte border ------------------------------------------
+  // static const uint8_t TLC5971_PACKET_CONFIG_LSHIFT_BCB_LS = 6;
+  // static const uint8_t TLC5971_PACKET_CONFIG_LSHIFT_BCG_RS = 1;
+  // // byte border ------------------------------------------
+  // static const uint8_t TLC5971_PACKET_CONFIG_LSHIFT_BCG_LS = 7;
+  // static const uint8_t TLC5971_PACKET_CONFIG_LSHIFT_BCR = 0;
 
   union TLC5971_packet_gsdata_t {
     uint8_t bytes[24];
+    // the uint16_t will not work everywhere because of endianess problems..
     // 12ch @16bit = 24byte
     struct {
       uint16_t GSB3;
@@ -275,8 +268,8 @@ class SPIOutput: public ola::rdm::DiscoverableRDMControllerInterface {
   union TLC5971_packet_t {
     uint8_t bytes[28];
     struct {
-      // TLC5971_packet_config_t config;
-      uint8_t config[4];
+      TLC5971_packet_config_t config;
+      // uint8_t config[4];
       TLC5971_packet_gsdata_t gsdata;
     } fields;
   };
