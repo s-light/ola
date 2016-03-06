@@ -880,8 +880,15 @@ void SPIOutput::IndividualTLC5971Control(const DmxBuffer &buffer) {
     //            << std::bitset<8>(device_data.fields.gsdata.bytes[i]);
     // }
 
+    OLA_WARN << "TLC5971_packet_t size:"
+             << sizeof(TLC5971_packet_t);
+    // should return 224
+
     // copy data to output buffer
-    memcpy(output + spi_offset, device_data.bytes, sizeof(TLC5971_packet_t));
+    // memcpy(output + spi_offset, device_data.bytes, sizeof(TLC5971_packet_t));
+    for (uint8_t i = 0; i < sizeof(TLC5971_packet_t); i++) {
+      output[i + spi_offset] = device_data.bytes[i];
+    }
   }
 
   // write output back
