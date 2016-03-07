@@ -745,11 +745,19 @@ void SPIOutput::IndividualTLC5971Control(const DmxBuffer &buffer) {
   //   + 1.34uS
   // than next update.
 
+  // OLA_WARN << "******************************************";
+
   // calculate DMX-start-address
   const unsigned int first_slot = m_start_address - 1;  // 0 offset
 
+  // calculate how much channels for full devices are available in dmx_buffer
+  uint16_t devices_in_buffer =
+    (buffer.Size() - first_slot) / TLC5971_SLOTS_PER_DEVICE;
+  // OLA_WARN << "  devices_in_buffer:"
+  //          << static_cast<uint16_t>(devices_in_buffer);
+
   // only do something if at least 1 device can be updated..
-  if (buffer.Size() - first_slot < TLC5971_SLOTS_PER_DEVICE) {
+  if (devices_in_buffer == 0) {
     OLA_INFO << "Insufficient DMX data, required " << TLC5971_SLOTS_PER_DEVICE
              << ", got " << buffer.Size() - first_slot;
     return;
@@ -771,15 +779,23 @@ void SPIOutput::IndividualTLC5971Control(const DmxBuffer &buffer) {
     return;
   }
 
-  // OLA_WARN << "******************************************";
+  for (
+    uint16_t device_index = 0;
+    device_index < devices_in_buffer;
+    device_index++
+  ) {
+    // OLA_WARN << " ~~~~~";
+    uint16_t dmx_offset =
+      first_slot + (device_index * TLC5971_SLOTS_PER_DEVICE);
 
-  // calculate how much channels for full devices are available in dmx_buffer
-  uint16_t devices_in_buffer = buffer.Size() / TLC5971_SLOTS_PER_DEVICE;
+    uint16_t spi_offset = (device_index * TLC5971_SPI_BYTES_PER_DEVICE);
 
-  for (uint16_t i = 0; i < devices_in_buffer; i++) {
-    uint16_t dmx_offset = first_slot + (i * TLC5971_SLOTS_PER_DEVICE);
-
-    uint16_t spi_offset = (i * TLC5971_SPI_BYTES_PER_DEVICE);
+    // OLA_WARN << "  device_index:"
+    //          << static_cast<uint16_t>(device_index);
+    // OLA_WARN << "  dmx_offset:"
+    //          << static_cast<uint16_t>(dmx_offset);
+    // OLA_WARN << "  spi_offset:"
+    //          << static_cast<uint16_t>(spi_offset);
 
     // setup configuration for this device.
     TLC5971_packet_t device_data;
@@ -870,8 +886,17 @@ void SPIOutput::IndividualTLC5971Control(const DmxBuffer &buffer) {
     // possible with
     // device_data.gsdata.gs_fields.GSB3 = 65000
     // or
-    for (uint8_t i = 0; i < TLC5971_SLOTS_PER_DEVICE; i++) {
-      device_data.fields.gsdata.bytes[i] = buffer.Get(dmx_offset + i);
+    for (
+      uint8_t gs_index = 0;
+      gs_index < TLC5971_SLOTS_PER_DEVICE;
+      gs_index++
+    ) {
+      // OLA_WARN << "  gs_index:"
+      //          << static_cast<uint16_t>(gs_index);
+      // OLA_WARN << "  dmx_offset + gs_index:"
+      //          << static_cast<uint16_t>(dmx_offset + gs_index);
+      device_data.fields.gsdata.bytes[gs_index] =
+        buffer.Get(dmx_offset + gs_index);
     }
 
     // OLA_WARN << "GS data:";
@@ -880,16 +905,22 @@ void SPIOutput::IndividualTLC5971Control(const DmxBuffer &buffer) {
     //            << std::bitset<8>(device_data.fields.gsdata.bytes[i]);
     // }
 
-    OLA_WARN << "TLC5971_packet_t size:"
-             << sizeof(TLC5971_packet_t);
-    // should return 224
+    // OLA_WARN << "  TLC5971_packet_t size:"
+    //          << sizeof(TLC5971_packet_t);
+    // OLA_WARN << "  device_data size:"
+    //          << sizeof(device_data);
+    // should return 28byte = 224bit
 
     // copy data to output buffer
     // memcpy(output + spi_offset, device_data.bytes, sizeof(TLC5971_packet_t));
-    for (uint8_t i = 0; i < sizeof(TLC5971_packet_t); i++) {
-      output[i + spi_offset] = device_data.bytes[i];
+    for (
+      uint8_t data_index = 0;
+      data_index < sizeof(TLC5971_packet_t);
+      data_index++
+    ) {
+      output[spi_offset + data_index] = device_data.bytes[data_index];
     }
-  }
+  }  // for devices_in_buffer end
 
   // write output back
   m_backend->Commit(m_output_number);
