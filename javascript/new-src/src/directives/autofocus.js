@@ -1,4 +1,4 @@
-/*
+/**
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
@@ -13,33 +13,29 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * DiscoveryAgent.cpp
- * The Interface for DNS-SD Registration & Discovery
- * Copyright (C) 2013 Simon Newton
+ * Allows an element to obtain focus whenever a variable is set to true.
+ * Copyright (C) 2016 Florian Edelmann
  */
-#include "olad/DiscoveryAgent.h"
-
-#if HAVE_CONFIG_H
-#include <config.h>
-#endif  // HAVE_CONFIG_H
-
-#ifdef HAVE_DNSSD
-#include "olad/BonjourDiscoveryAgent.h"
-#endif  // HAVE_DNSSD
-
-#ifdef HAVE_AVAHI
-#include "olad/AvahiDiscoveryAgent.h"
-#endif  // HAVE_AVAHI
-
-namespace ola {
-
-DiscoveryAgentInterface* DiscoveryAgentFactory::New() {
-#ifdef HAVE_DNSSD
-  return new BonjourDiscoveryAgent();
-#endif  // HAVE_DNSSD
-#ifdef HAVE_AVAHI
-  return new AvahiDiscoveryAgent();
-#endif  // HAVE_AVAHI
-  return NULL;
-}
-}  // namespace ola
+/*jshint browser: true, jquery: true*/
+/* global ola */
+ola.directive('autofocus', ['$timeout', '$parse',
+  function($timeout, $parse) {
+    'use strict';
+    return {
+      restrict: 'A',
+      link: function($scope, $element, $attrs) {
+        var model = $parse($attrs.autofocus);
+        $scope.$watch(model, function(value) {
+          if (value === true) {
+            $timeout(function() {
+              $element[0].focus();
+            });
+          }
+        });
+        $element.bind('blur', function() {
+          $scope.$apply(model.assign($scope, false));
+        });
+      }
+    };
+  }
+]);

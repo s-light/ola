@@ -20,6 +20,9 @@
 # TestFixture - The base test class, defines common behaviour
 #  ResponderTestFixture - A test which involves sending one or more RDM
 #                         commands to a responder
+#   ParamDescriptionTestFixture - A test fixture that changes the expected
+#                                 result based on if PARAMETER_DESCRIPTION
+#                                 is supported
 #   OptionalParameterTestFixture - A test fixture that changes the expected
 #                                  result based on the output of
 #                                  SUPPORTED_PARAMETERS
@@ -55,6 +58,9 @@ class TestFixture(object):
   REQUIRES = []
 
   def __init__(self, device, universe, uid, pid_store, *args, **kwargs):
+    self._warnings = []
+    self._advisories = []
+    self._debug = []
     self._device_properties = device
     self._uid = uid
     self._pid_store = pid_store
@@ -63,9 +69,9 @@ class TestFixture(object):
       self.pid = self.LookupPid(self.PID)
     except AttributeError:
       self.pid = None
-    self._warnings = []
-    self._advisories = []
-    self._debug = []
+    if self.PidRequired() and self.pid is None:
+      self.SetBroken("%s: Couldn't find PID from %s" %
+                     (self.__class__.__name__, self.PID))
 
   def __hash__(self):
     return hash(self.__class__.__name__)
@@ -78,6 +84,10 @@ class TestFixture(object):
 
   def __cmp__(self, other):
     return cmp(self.__class__.__name__, other.__class__.__name__)
+
+  def PidRequired(self):
+    """Whether a valid PID is required for this test"""
+    return True
 
   def LookupPid(self, pid_name):
     return self._pid_store.GetName(pid_name, self._uid)
@@ -108,12 +118,12 @@ class TestFixture(object):
     Args:
       message: The text of the warning message.
     """
-    self.LogDebug('Warning: %s' % message)
+    self.LogDebug(' Warning: %s' % message)
     self._warnings.append(message)
 
   # Advisories are logged independently of errors. They should be used to
-  # indicate conditions that while aren't covered by the standard, should still
-  # be fixed.
+  # indicate conditions that while not covered by the standard, should still be
+  # fixed.
   @property
   def advisories(self):
     """Non-fatal advisories message."""
@@ -125,7 +135,7 @@ class TestFixture(object):
     Args:
       message: The text of the advisory message.
     """
-    self.LogDebug('Advisory: %s' % message)
+    self.LogDebug(' Advisory: %s' % message)
     self._advisories.append(message)
 
   @property
@@ -193,7 +203,14 @@ class TestFixture(object):
 
   def Run(self):
     """Run the test."""
+    # Try and fail early
+    if self.state == TestState.BROKEN:
+      return
+
     self.Test()
+
+  def Stop(self):
+    self.SetBroken('stop method not defined')
 
   def SetNotRun(self, message=None):
     """Set the state of the test to NOT_RUN and stop further processing."""
@@ -285,6 +302,32 @@ class ResponderTestFixture(TestFixture):
       self._expected_results = results
     else:
       self._expected_results = [results]
+
+  def AddIfGetSupported(self, result):
+    """Add a set of expected GET results if the PID is supported"""
+    if not self.PidSupported():
+      result = self.NackGetResult(RDMNack.NR_UNKNOWN_PID)
+    self.AddExpectedResults(result)
+
+  def AddIfSetSupported(self, result):
+    """Add a set of expected SET results if the PID is supported"""
+    # The lock modes means that some sets may return NR_WRITE_PROTECT. Account
+    # for that here.
+    if not self.PidSupported():
+      expected_results = self.NackSetResult(RDMNack.NR_UNKNOWN_PID)
+    else:
+      expected_results = [
+        self.NackSetResult(
+          RDMNack.NR_WRITE_PROTECT,
+          advisory='SET %s was write protected, try changing the lock mode if '
+                   'enabled' % self.pid.name)
+      ]
+      if isinstance(result, list):
+        expected_results.extend(result)
+      else:
+        expected_results.append(result)
+
+    self.AddExpectedResults(expected_results)
 
   def NackDiscoveryResult(self, nack_reason, **kwargs):
     """A helper method which returns a NackDiscoveryResult for the current
@@ -676,6 +719,18 @@ class ResponderTestFixture(TestFixture):
     return nano_seconds / 1000.0
 
 
+class ParamDescriptionTestFixture(ResponderTestFixture):
+  """A sub class of ResponderTestFixture that alters behaviour if the
+     PARAMETER_DESCRIPTION PID shouldn't be supported.
+  """
+  def Requires(self):
+    return (super(ParamDescriptionTestFixture, self).Requires() +
+            ['manufacturer_parameters'])
+
+  def PidSupported(self):
+    return self.Property('manufacturer_parameters')
+
+
 class OptionalParameterTestFixture(ResponderTestFixture):
   """A sub class of ResponderTestFixture that alters behaviour if the PID isn't
      supported.
@@ -686,27 +741,3 @@ class OptionalParameterTestFixture(ResponderTestFixture):
 
   def PidSupported(self):
     return self.pid.value in self.Property('supported_parameters')
-
-  def AddIfGetSupported(self, result):
-    if not self.PidSupported():
-      result = self.NackGetResult(RDMNack.NR_UNKNOWN_PID)
-    self.AddExpectedResults(result)
-
-  def AddIfSetSupported(self, result):
-    # The lock modes means that some sets may return NR_WRITE_PROTECT. Account
-    # for that here.
-    if not self.PidSupported():
-      expected_results = self.NackSetResult(RDMNack.NR_UNKNOWN_PID)
-    else:
-      expected_results = [
-        self.NackSetResult(
-          RDMNack.NR_WRITE_PROTECT,
-          advisory='SET %s was write protected, try changing the lock mode if '
-                   'enabled' % self.pid.name)
-      ]
-      if isinstance(result, list):
-        expected_results.extend(result)
-      else:
-        expected_results.append(result)
-
-    self.AddExpectedResults(expected_results)
